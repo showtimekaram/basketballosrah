@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoopBoard Pro — Live</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#080c14;--surface:#0e1420;--surface2:#141b2d;--border:#1e2a3a;
+      --text:#e8edf5;--muted:#6b7a90;--accent:#00d4ff;
+      --a-color:#ff4d4d;--b-color:#4daaff;
+      --green:#00ff88;--gold:#ffd700;--red:#ff3b3b;
+      --font-display:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif;
+    }
+    body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh}
+
+    /* ── NAV ── */
+    .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .nav-logo{font-family:var(--font-display);font-size:22px;font-weight:900;letter-spacing:1px;color:var(--accent)}
+    .nav-logo span{color:#fff}
+    .sync-badge{font-size:11px;letter-spacing:2px;color:var(--green);border:1px solid var(--green);border-radius:20px;padding:3px 10px;font-weight:700;animation:pulse 2s infinite}
+    .sync-badge.offline{color:var(--muted);border-color:var(--muted);animation:none}
+    .nav-btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+    .nav-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .2s}
+    .nav-btn:hover,.nav-btn.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+    .nav-btn.ref-a.active{border-color:var(--a-color);color:var(--a-color)}
+    .nav-btn.ref-b.active{border-color:var(--b-color);color:var(--b-color)}
+
+    /* ── PAGES ── */
+    .page{display:none;min-height:calc(100vh - 49px)}
+    .page.active{display:block}
+
+    /* ── DISPLAY ── */
+    .display-wrap{display:flex;flex-direction:column;height:calc(100vh - 49px);background:var(--bg)}
+    .courts-row{display:flex;flex:1;overflow:hidden}
+    .court-panel{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px;transition:flex .6s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+    .court-panel.close-game{flex:1.15}
+    .court-a{border-right:1px solid var(--border)}
+    .court-label{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;opacity:.5}
+    .court-a .court-label{color:var(--a-color)}.court-b .court-label{color:var(--b-color)}
+    .team-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .team-color-bar{width:5px;height:48px;border-radius:3px;flex-shrink:0;transition:background .3s}
+    .team-name{font-family:var(--font-display);font-size:clamp(20px,3.5vw,36px);font-weight:800;letter-spacing:.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .team-score{font-family:var(--font-display);font-size:clamp(52px,9vw,96px);font-weight:900;line-height:1;letter-spacing:-2px;transition:transform .2s,color .2s;min-width:100px;text-align:right}
+    .team-score.pop{animation:scorePop .5s cubic-bezier(.3,1.6,.4,1)}
+    .team-score.three{animation:threePop .7s cubic-bezier(.3,1.8,.4,1)}
+    @keyframes scorePop{0%{transform:scale(1)}30%{transform:scale(1.25);color:#ffd700}100%{transform:scale(1)}}
+    @keyframes threePop{0%{transform:scale(1)}20%{transform:scale(1.4);color:#00ff88;text-shadow:0 0 30px #00ff88}60%{transform:scale(1.2)}100%{transform:scale(1);text-shadow:none}}
+    .divider{height:1px;background:var(--border);margin:12px 0;opacity:.4}
+    .clock-area{display:flex;align-items:center;gap:16px;margin-top:12px}
+    .clock{font-family:var(--font-display);font-size:clamp(32px,5vw,64px);font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+    .clock.clutch{color:var(--red);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    .quarter-badge{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:2px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--muted)}
+    .possession{width:10px;height:10px;border-radius:50%;background:var(--gold);margin-left:auto;opacity:.9;animation:possGlow 2s infinite}
+    @keyframes possGlow{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 16px var(--gold)}}
+    .clutch-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(255,59,59,.06) 0%,transparent 70%);pointer-events:none;opacity:0;transition:opacity .5s}
+    .clutch-overlay.active{opacity:1}
+    .fouls-row{display:flex;gap:8px;margin-top:4px}
+    .foul-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+    .foul-dot.active{background:#ff6b35}
+    .momentum-bar{margin-top:14px}
+    .momentum-label{font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;text-transform:uppercase}
+    .momentum-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
+    .momentum-fill{height:100%;background:linear-gradient(90deg,var(--a-color),var(--b-color));border-radius:3px;transition:width .8s ease;position:absolute;left:0;top:0}
+    .momentum-center{position:absolute;left:50%;top:-1px;width:2px;height:8px;background:var(--border);transform:translateX(-50%)}
+    .banner{background:var(--surface);border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;min-height:44px}
+    .banner-label{font-family:var(--font-display);font-size:11px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;font-weight:700;flex-shrink:0}
+    .banner-text{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text);flex:1}
+    .sponsor-text{font-size:13px;color:var(--muted);margin-left:auto;flex-shrink:0}
+
+    /* ── LOGIN GATE ── */
+    .login-gate{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 49px)}
+    .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:360px;text-align:center}
+    .login-icon{font-size:48px;margin-bottom:12px}
+    .login-title{font-family:var(--font-display);font-size:28px;font-weight:900;margin-bottom:4px}
+    .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+    .login-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:12px 16px;font-family:var(--font-body);font-size:16px;width:100%;margin-bottom:12px;letter-spacing:2px;text-align:center}
+    .login-input:focus{outline:none;border-color:var(--accent)}
+    .login-btn{background:var(--accent);border:none;color:#000;border-radius:8px;padding:12px 24px;font-family:var(--font-display);font-size:18px;font-weight:800;cursor:pointer;width:100%;transition:all .2s;letter-spacing:1px}
+    .login-btn.ref-a-btn{background:var(--a-color)}
+    .login-btn.ref-b-btn{background:var(--b-color)}
+    .login-btn:hover{opacity:.85;transform:scale(.98)}
+    .login-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-body);transition:all .2s}
+    .logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+    /* ── REF PANEL ── */
+    .ref-wrap{max-width:420px;margin:0 auto;padding:16px}
+    .ref-header{text-align:center;margin-bottom:20px}
+    .ref-court-label{font-family:var(--font-display);font-size:13px;letter-spacing:3px;font-weight:700;text-transform:uppercase;margin-bottom:4px}
+    .ref-game-status{font-family:var(--font-display);font-size:14px;color:var(--muted)}
+    .score-display{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+    .score-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .score-team-name{font-family:var(--font-display);font-size:18px;font-weight:700}
+    .score-num{font-family:var(--font-display);font-size:40px;font-weight:900}
+    .btn-grid{display:grid;gap:8px;margin-bottom:12px}
+    .btn-grid-3{grid-template-columns:repeat(3,1fr)}.btn-grid-2{grid-template-columns:repeat(2,1fr)}.btn-grid-1{grid-template-columns:1fr}
+    .ctl-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:16px 8px;font-family:var(--font-display);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;line-height:1.2;letter-spacing:.5px}
+    .ctl-btn:active{transform:scale(.96)}
+    .ctl-btn.plus1{border-color:#4d8cff;color:#4d8cff}.ctl-btn.plus1:hover{background:#4d8cff22}
+    .ctl-btn.plus2{border-color:#00ccff;color:#00ccff}.ctl-btn.plus2:hover{background:#00ccff22}
+    .ctl-btn.plus3{border-color:var(--green);color:var(--green)}.ctl-btn.plus3:hover{background:#00ff8822}
+    .ctl-btn.minus1{border-color:#ff6b35;color:#ff6b35}.ctl-btn.minus1:hover{background:#ff6b3522}
+    .ctl-btn.start{border-color:var(--green);color:var(--green)}.ctl-btn.start:hover{background:#00ff8822}
+    .ctl-btn.pause{border-color:var(--gold);color:var(--gold)}.ctl-btn.pause:hover{background:#ffd70022}
+    .ctl-btn.foul{border-color:#ff9500;color:#ff9500}.ctl-btn.foul:hover{background:#ff950022}
+    .ctl-btn.poss{border-color:var(--gold);color:var(--gold)}.ctl-btn.poss:hover{background:#ffd70022}
+    .ctl-btn.reset-q{border-color:var(--muted);color:var(--muted)}.ctl-btn.reset-q:hover{background:#ffffff11}
+    .section-label{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;font-weight:600}
+
+    /* ── ADMIN ── */
+    .admin-wrap{max-width:700px;margin:0 auto;padding:20px 16px}
+    .admin-title{font-family:var(--font-display);font-size:28px;font-weight:800;margin-bottom:20px;color:var(--accent)}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+    .card-title{font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;color:var(--muted)}
+    .input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:14px;width:100%;margin-bottom:8px}
+    .input:focus{outline:none;border-color:var(--accent)}
+    .select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:14px;width:100%;margin-bottom:8px;appearance:none}
+    .label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block;letter-spacing:.5px}
+    .admin-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 18px;cursor:pointer;font-family:var(--font-body);font-size:14px;font-weight:600;transition:all .2s;margin:2px}
+    .admin-btn:hover{background:var(--border)}
+    .admin-btn.primary{border-color:var(--accent);color:var(--accent)}.admin-btn.primary:hover{background:#00d4ff22}
+    .admin-btn.success{border-color:var(--green);color:var(--green)}.admin-btn.success:hover{background:#00ff8822}
+    .admin-btn.danger{border-color:var(--red);color:var(--red)}.admin-btn.danger:hover{background:#ff3b3b22}
+    .admin-btn.warn{border-color:var(--gold);color:var(--gold)}.admin-btn.warn:hover{background:#ffd70022}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+    .field{flex:1;min-width:100px}
+    .color-input{width:48px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px}
+    .team-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .team-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:8px 12px}
+    .team-color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+    .team-item-name{flex:1;font-size:14px;font-weight:600}
+    .override-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);border-radius:10px;padding:4px}
+    .tab{flex:1;background:transparent;border:none;color:var(--muted);padding:8px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:600;transition:all .2s}
+    .tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .tab-content{display:none}.tab-content.active{display:block}
+    .close-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1}
+    .close-btn:hover{color:var(--red)}
+    .announce-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:14px;width:100%;margin-bottom:8px;resize:none;height:60px}
+    .announce-input:focus{outline:none;border-color:var(--accent)}
+    .stat-badge{display:inline-block;background:var(--surface2);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--muted);margin:2px}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+    .status-dot.live{background:var(--green);animation:pulse 1.5s infinite;box-shadow:0 0 8px var(--green)}
+    .status-dot.paused{background:var(--gold)}.status-dot.idle{background:var(--muted)}
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:14px;z-index:1000;animation:toastIn .3s ease;pointer-events:none}
+    @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── PASSWORD CONFIG IN ADMIN ── */
+    .pw-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+    .pw-field{flex:1}
+  </style>
+</head>
+<body>
+<div id="app">
+  <nav class="nav">
+    <div class="nav-logo">Hoop<span>Board</span> <span style="font-size:13px;color:var(--muted);font-weight:400">Pro</span></div>
+    <span class="sync-badge" id="sync-badge">● LIVE SYNC</span>
+    <div class="nav-btns">
+      <button class="nav-btn active" onclick="showPage('display')">📺 Display</button>
+      <button class="nav-btn ref-a" id="nav-ref-a" onclick="showPage('ref-a')">🏀 Ref A</button>
+      <button class="nav-btn ref-b" id="nav-ref-b" onclick="showPage('ref-b')">🏀 Ref B</button>
+      <button class="nav-btn" onclick="showPage('admin')">⚙️ Admin</button>
+    </div>
+  </nav>
+
+  <!-- ── DISPLAY ── -->
+  <div class="page active" id="page-display">
+    <div class="display-wrap">
+      <div class="courts-row">
+        <div class="court-panel court-a" id="court-a-panel">
+          <div class="clutch-overlay" id="clutch-a"></div>
+          <div class="court-label">Court A</div>
+          <div class="team-row">
+            <div class="team-color-bar" id="disp-a-color1"></div>
+            <div class="team-name" id="disp-a-name1">Team 1</div>
+            <div class="team-score" id="disp-a-score1">0</div>
+          </div>
+          <div class="fouls-row" id="disp-a-fouls1"></div>
+          <div class="divider"></div>
+          <div class="team-row">
+            <div class="team-color-bar" id="disp-a-color2"></div>
+            <div class="team-name" id="disp-a-name2">Team 2</div>
+            <div class="team-score" id="disp-a-score2">0</div>
+          </div>
+          <div class="fouls-row" id="disp-a-fouls2"></div>
+          <div class="clock-area">
+            <div class="clock" id="disp-a-clock">10:00</div>
+            <div class="quarter-badge" id="disp-a-quarter">Q1</div>
+            <div class="possession" id="disp-a-poss" style="visibility:hidden"></div>
+          </div>
+          <div class="momentum-bar">
+            <div class="momentum-label">Momentum</div>
+            <div class="momentum-track">
+              <div class="momentum-fill" id="mom-a" style="width:50%"></div>
+              <div class="momentum-center"></div>
+            </div>
+          </div>
+        </div>
+        <div class="court-panel court-b" id="court-b-panel">
+          <div class="clutch-overlay" id="clutch-b"></div>
+          <div class="court-label">Court B</div>
+          <div class="team-row">
+            <div class="team-color-bar" id="disp-b-color1"></div>
+            <div class="team-name" id="disp-b-name1">Team 3</div>
+            <div class="team-score" id="disp-b-score1">0</div>
+          </div>
+          <div class="fouls-row" id="disp-b-fouls1"></div>
+          <div class="divider"></div>
+          <div class="team-row">
+            <div class="team-color-bar" id="disp-b-color2"></div>
+            <div class="team-name" id="disp-b-name2">Team 4</div>
+            <div class="team-score" id="disp-b-score2">0</div>
+          </div>
+          <div class="fouls-row" id="disp-b-fouls2"></div>
+          <div class="clock-area">
+            <div class="clock" id="disp-b-clock">10:00</div>
+            <div class="quarter-badge" id="disp-b-quarter">Q1</div>
+            <div class="possession" id="disp-b-poss" style="visibility:hidden"></div>
+          </div>
+          <div class="momentum-bar">
+            <div class="momentum-label">Momentum</div>
+            <div class="momentum-track">
+              <div class="momentum-fill" id="mom-b" style="width:50%"></div>
+              <div class="momentum-center"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="banner">
+        <div class="banner-label">Live</div>
+        <div class="banner-text" id="banner-text">Welcome to HoopBoard Pro — Real-Time Basketball Scoreboard</div>
+        <div class="sponsor-text" id="sponsor-text">Powered by HoopBoard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REF A ── -->
+  <div class="page" id="page-ref-a">
+    <!-- Login Gate A -->
+    <div class="login-gate" id="login-gate-a">
+      <div class="login-card">
+        <div class="login-icon">🏀</div>
+        <div class="login-title" style="color:var(--a-color)">Ref A Access</div>
+        <div class="login-sub">Court A — Enter your referee password</div>
+        <input type="password" class="login-input" id="login-pw-a" placeholder="••••••" onkeydown="if(event.key==='Enter')loginRef('a')">
+        <button class="login-btn ref-a-btn" onclick="loginRef('a')">ENTER COURT A</button>
+        <div class="login-error" id="login-error-a"></div>
+      </div>
+    </div>
+    <!-- Ref Panel A (hidden until login) -->
+    <div id="ref-panel-a" style="display:none">
+      <div class="ref-wrap">
+        <div class="ref-header">
+          <div class="ref-court-label" style="color:var(--a-color)">Court A — Referee Panel</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px">
+            <div class="ref-game-status" id="ref-a-status">
+              <span class="status-dot idle" id="ref-a-dot"></span><span id="ref-a-status-text">Ready</span>
+            </div>
+            <button class="logout-btn" onclick="logoutRef('a')">Logout</button>
+          </div>
+        </div>
+        <div class="score-display">
+          <div class="score-row">
+            <div class="score-team-name" id="ref-a-name1" style="color:#ff6b6b">Team 1</div>
+            <div class="score-num" id="ref-a-score1">0</div>
+          </div>
+          <div class="score-row">
+            <div class="score-team-name" id="ref-a-name2" style="color:#4d8cff">Team 2</div>
+            <div class="score-num" id="ref-a-score2">0</div>
+          </div>
+          <div style="text-align:center;margin-top:8px">
+            <span class="clock" id="ref-a-clock" style="font-size:28px">10:00</span>
+            <span class="quarter-badge" id="ref-a-quarter" style="font-size:13px;margin-left:8px">Q1</span>
+          </div>
+        </div>
+        <div class="section-label">Team 1 Points</div>
+        <div class="btn-grid btn-grid-3" style="margin-bottom:12px">
+          <button class="ctl-btn plus1" onclick="addScore('a',1,1)">+1</button>
+          <button class="ctl-btn plus2" onclick="addScore('a',1,2)">+2</button>
+          <button class="ctl-btn plus3" onclick="addScore('a',1,3)">+3 🔥</button>
+        </div>
+        <div class="section-label">Team 2 Points</div>
+        <div class="btn-grid btn-grid-3" style="margin-bottom:12px">
+          <button class="ctl-btn plus1" onclick="addScore('a',2,1)">+1</button>
+          <button class="ctl-btn plus2" onclick="addScore('a',2,2)">+2</button>
+          <button class="ctl-btn plus3" onclick="addScore('a',2,3)">+3 🔥</button>
+        </div>
+        <div class="section-label">Actions</div>
+        <div class="btn-grid btn-grid-2" style="margin-bottom:10px">
+          <button class="ctl-btn minus1" onclick="undoScore('a',1)">-1 T1</button>
+          <button class="ctl-btn minus1" onclick="undoScore('a',2)">-1 T2</button>
+        </div>
+        <div class="btn-grid btn-grid-2" style="margin-bottom:10px">
+          <button class="ctl-btn start" id="ref-a-timer-btn" onclick="toggleTimer('a')">▶ Start</button>
+          <button class="ctl-btn poss" onclick="togglePossession('a')">⬡ Poss</button>
+        </div>
+        <div class="btn-grid btn-grid-3">
+          <button class="ctl-btn foul" onclick="addFoul('a',1)">Foul T1</button>
+          <button class="ctl-btn foul" onclick="addFoul('a',2)">Foul T2</button>
+          <button class="ctl-btn reset-q" onclick="nextQuarter('a')">Next Q</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REF B ── -->
+  <div class="page" id="page-ref-b">
+    <!-- Login Gate B -->
+    <div class="login-gate" id="login-gate-b">
+      <div class="login-card">
+        <div class="login-icon">🏀</div>
+        <div class="login-title" style="color:var(--b-color)">Ref B Access</div>
+        <div class="login-sub">Court B — Enter your referee password</div>
+        <input type="password" class="login-input" id="login-pw-b" placeholder="••••••" onkeydown="if(event.key==='Enter')loginRef('b')">
+        <button class="login-btn ref-b-btn" onclick="loginRef('b')">ENTER COURT B</button>
+        <div class="login-error" id="login-error-b"></div>
+      </div>
+    </div>
+    <!-- Ref Panel B (hidden until login) -->
+    <div id="ref-panel-b" style="display:none">
+      <div class="ref-wrap">
+        <div class="ref-header">
+          <div class="ref-court-label" style="color:var(--b-color)">Court B — Referee Panel</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px">
+            <div class="ref-game-status" id="ref-b-status">
+              <span class="status-dot idle" id="ref-b-dot"></span><span id="ref-b-status-text">Ready</span>
+            </div>
+            <button class="logout-btn" onclick="logoutRef('b')">Logout</button>
+          </div>
+        </div>
+        <div class="score-display">
+          <div class="score-row">
+            <div class="score-team-name" id="ref-b-name1" style="color:#ff6b6b">Team 3</div>
+            <div class="score-num" id="ref-b-score1">0</div>
+          </div>
+          <div class="score-row">
+            <div class="score-team-name" id="ref-b-name2" style="color:#4d8cff">Team 4</div>
+            <div class="score-num" id="ref-b-score2">0</div>
+          </div>
+          <div style="text-align:center;margin-top:8px">
+            <span class="clock" id="ref-b-clock" style="font-size:28px">10:00</span>
+            <span class="quarter-badge" id="ref-b-quarter" style="font-size:13px;margin-left:8px">Q1</span>
+          </div>
+        </div>
+        <div class="section-label">Team 3 Points</div>
+        <div class="btn-grid btn-grid-3" style="margin-bottom:12px">
+          <button class="ctl-btn plus1" onclick="addScore('b',1,1)">+1</button>
+          <button class="ctl-btn plus2" onclick="addScore('b',1,2)">+2</button>
+          <button class="ctl-btn plus3" onclick="addScore('b',1,3)">+3 🔥</button>
+        </div>
+        <div class="section-label">Team 4 Points</div>
+        <div class="btn-grid btn-grid-3" style="margin-bottom:12px">
+          <button class="ctl-btn plus1" onclick="addScore('b',2,1)">+1</button>
+          <button class="ctl-btn plus2" onclick="addScore('b',2,2)">+2</button>
+          <button class="ctl-btn plus3" onclick="addScore('b',2,3)">+3 🔥</button>
+        </div>
+        <div class="section-label">Actions</div>
+        <div class="btn-grid btn-grid-2" style="margin-bottom:10px">
+          <button class="ctl-btn minus1" onclick="undoScore('b',1)">-1 T1</button>
+          <button class="ctl-btn minus1" onclick="undoScore('b',2)">-1 T2</button>
+        </div>
+        <div class="btn-grid btn-grid-2" style="margin-bottom:10px">
+          <button class="ctl-btn start" id="ref-b-timer-btn" onclick="toggleTimer('b')">▶ Start</button>
+          <button class="ctl-btn poss" onclick="togglePossession('b')">⬡ Poss</button>
+        </div>
+        <div class="btn-grid btn-grid-3">
+          <button class="ctl-btn foul" onclick="addFoul('b',1)">Foul T1</button>
+          <button class="ctl-btn foul" onclick="addFoul('b',2)">Foul T2</button>
+          <button class="ctl-btn reset-q" onclick="nextQuarter('b')">Next Q</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN ── -->
+  <div class="page" id="page-admin">
+    <div class="admin-wrap">
+      <div class="admin-title">⚙️ Admin Panel</div>
+      <div class="tabs">
+        <button class="tab active" onclick="adminTab('games',event)">Games</button>
+        <button class="tab" onclick="adminTab('teams',event)">Teams</button>
+        <button class="tab" onclick="adminTab('broadcast',event)">Broadcast</button>
+        <button class="tab" onclick="adminTab('passwords',event)">Passwords</button>
+        <button class="tab" onclick="adminTab('system',event)">System</button>
+      </div>
+
+      <!-- GAMES TAB -->
+      <div class="tab-content active" id="admin-tab-games">
+        <div class="override-grid">
+          <div class="card">
+            <div class="card-title" style="color:var(--a-color)">Court A</div>
+            <label class="label">Team 1</label>
+            <select class="select" id="admin-a-team1" onchange="applyTeamConfig()"></select>
+            <label class="label">Team 2</label>
+            <select class="select" id="admin-a-team2" onchange="applyTeamConfig()"></select>
+            <label class="label">Quarter Duration (min)</label>
+            <select class="select" id="admin-a-qdur" onchange="applyQuarterDur('a')">
+              <option value="10">10</option><option value="12">12</option><option value="8">8</option><option value="5">5</option>
+            </select>
+            <label class="label">Override Score T1</label>
+            <div class="row"><input type="number" class="input" id="override-a-s1" min="0" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideScore('a',1)">Set</button></div>
+            <label class="label">Override Score T2</label>
+            <div class="row"><input type="number" class="input" id="override-a-s2" min="0" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideScore('a',2)">Set</button></div>
+            <label class="label">Set Clock (mm:ss)</label>
+            <div class="row"><input type="text" class="input" id="override-a-clock" placeholder="10:00" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideClock('a')">Set</button></div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="admin-btn primary" onclick="startGame('a')">Start Game</button>
+              <button class="admin-btn danger" onclick="resetGame('a')">Reset</button>
+              <button class="admin-btn" onclick="swapTeams('a')">Swap Teams</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--b-color)">Court B</div>
+            <label class="label">Team 1</label>
+            <select class="select" id="admin-b-team1" onchange="applyTeamConfig()"></select>
+            <label class="label">Team 2</label>
+            <select class="select" id="admin-b-team2" onchange="applyTeamConfig()"></select>
+            <label class="label">Quarter Duration (min)</label>
+            <select class="select" id="admin-b-qdur" onchange="applyQuarterDur('b')">
+              <option value="10">10</option><option value="12">12</option><option value="8">8</option><option value="5">5</option>
+            </select>
+            <label class="label">Override Score T1</label>
+            <div class="row"><input type="number" class="input" id="override-b-s1" min="0" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideScore('b',1)">Set</button></div>
+            <label class="label">Override Score T2</label>
+            <div class="row"><input type="number" class="input" id="override-b-s2" min="0" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideScore('b',2)">Set</button></div>
+            <label class="label">Set Clock (mm:ss)</label>
+            <div class="row"><input type="text" class="input" id="override-b-clock" placeholder="10:00" style="margin-bottom:0"><button class="admin-btn warn" onclick="overrideClock('b')">Set</button></div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="admin-btn primary" onclick="startGame('b')">Start Game</button>
+              <button class="admin-btn danger" onclick="resetGame('b')">Reset</button>
+              <button class="admin-btn" onclick="swapTeams('b')">Swap Teams</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEAMS TAB -->
+      <div class="tab-content" id="admin-tab-teams">
+        <div class="card">
+          <div class="card-title">Add / Edit Team</div>
+          <div class="row">
+            <div class="field"><label class="label">Team Name</label><input type="text" class="input" id="new-team-name" placeholder="e.g. Lakers" style="margin-bottom:0"></div>
+            <div><label class="label">Color 1</label><input type="color" class="color-input" id="new-team-color1" value="#ff4444"></div>
+            <div><label class="label">Color 2</label><input type="color" class="color-input" id="new-team-color2" value="#ffffff"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="admin-btn success" onclick="addTeam()">+ Add Team</button>
+            <button class="admin-btn" onclick="el('new-team-name').value=''">Clear</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Teams</div>
+          <div class="team-list" id="team-list"></div>
+        </div>
+      </div>
+
+      <!-- BROADCAST TAB -->
+      <div class="tab-content" id="admin-tab-broadcast">
+        <div class="card">
+          <div class="card-title">Announcement Banner</div>
+          <label class="label">Message</label>
+          <textarea class="announce-input" id="announce-msg" placeholder="Type announcement..."></textarea>
+          <label class="label">Sponsor Text (right side)</label>
+          <input type="text" class="input" id="sponsor-msg" placeholder="Powered by HoopBoard">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="admin-btn primary" onclick="sendAnnouncement()">Send to Banner</button>
+            <button class="admin-btn" onclick="clearAnnouncement()">Clear Banner</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Manual Animations</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="admin-btn warn" onclick="triggerAnim('a','pop')">Score Flash A</button>
+            <button class="admin-btn warn" onclick="triggerAnim('b','pop')">Score Flash B</button>
+            <button class="admin-btn success" onclick="triggerAnim('a','three')">Three A</button>
+            <button class="admin-btn success" onclick="triggerAnim('b','three')">Three B</button>
+            <button class="admin-btn danger" onclick="triggerClutch('a')">Clutch Mode A</button>
+            <button class="admin-btn danger" onclick="triggerClutch('b')">Clutch Mode B</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSWORDS TAB -->
+      <div class="tab-content" id="admin-tab-passwords">
+        <div class="card">
+          <div class="card-title">🔐 Referee Passwords</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Set the passwords that Ref A and Ref B must enter to access their control panels. Passwords are stored in shared state and synced across all devices.</p>
+          <label class="label">Ref A (Court A) Password</label>
+          <div class="pw-row">
+            <div class="pw-field"><input type="text" class="input" id="pw-set-a" placeholder="e.g. refA2024" style="margin-bottom:0;letter-spacing:2px"></div>
+            <button class="admin-btn primary" onclick="setPassword('a')">Save</button>
+          </div>
+          <label class="label">Ref B (Court B) Password</label>
+          <div class="pw-row">
+            <div class="pw-field"><input type="text" class="input" id="pw-set-b" placeholder="e.g. refB2024" style="margin-bottom:0;letter-spacing:2px"></div>
+            <button class="admin-btn primary" onclick="setPassword('b')">Save</button>
+          </div>
+          <div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted)">
+            💡 Share the Display screen on a projector/TV. Refs open the app on their own phones and log in with their password to control their court.
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM TAB -->
+      <div class="tab-content" id="admin-tab-system">
+        <div class="card">
+          <div class="card-title">System</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="admin-btn danger" onclick="fullReset()">Full Reset All</button>
+            <button class="admin-btn" onclick="exportState()">Export State (JSON)</button>
+          </div>
+          <div style="margin-top:12px">
+            <div class="stat-badge">Version 2.0 Real-Time</div>
+            <div class="stat-badge" id="sync-method-badge">Syncing…</div>
+            <div class="stat-badge">Auto-save on</div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--muted)">State syncs every 1.5 seconds via shared cloud storage. Open on any device — refs log in with their passwords, display screen shows live updates automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  DEFAULT STATE
+// ════════════════════════════════════════════
+const DEFAULT_TEAMS = [
+  {id:'t1',name:'Bulls',color1:'#cc0000',color2:'#ffffff'},
+  {id:'t2',name:'Lakers',color1:'#552583',color2:'#FDB927'},
+  {id:'t3',name:'Warriors',color1:'#1D428A',color2:'#FFC72C'},
+  {id:'t4',name:'Celtics',color1:'#007A33',color2:'#ffffff'},
+  {id:'t5',name:'Heat',color1:'#98002E',color2:'#F9A01B'},
+  {id:'t6',name:'Nets',color1:'#ffffff',color2:'#000000'},
+];
+
+const DEFAULT_STATE = {
+  teams: DEFAULT_TEAMS,
+  courts: {
+    a:{team1Id:'t1',team2Id:'t2',score1:0,score2:0,fouls1:0,fouls2:0,quarter:1,quarterDur:10,clockSecs:600,timerRunning:false,possession:0,momentum:50,scoreHistory:[]},
+    b:{team1Id:'t3',team2Id:'t4',score1:0,score2:0,fouls1:0,fouls2:0,quarter:1,quarterDur:10,clockSecs:600,timerRunning:false,possession:0,momentum:50,scoreHistory:[]}
+  },
+  banner:'Welcome to HoopBoard Pro — Real-Time Basketball Scoreboard',
+  sponsor:'Powered by HoopBoard',
+  passwords:{a:'refa',b:'refb'}, // default passwords
+};
+
+// ════════════════════════════════════════════
+//  STATE & TIMERS
+// ════════════════════════════════════════════
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+let timers = {a:null,b:null};
+let loggedIn = {a:false,b:false};
+let lastSyncedHash = '';
+let syncOnline = false;
+
+// ════════════════════════════════════════════
+//  STORAGE HELPERS (persistent cross-device)
+// ════════════════════════════════════════════
+const STORAGE_KEY = 'hoopboard-game-state';
+
+async function pushState() {
+  try {
+    const val = JSON.stringify(state);
+    await window.storage.set(STORAGE_KEY, val, true); // shared=true → all devices see it
+    lastSyncedHash = val;
+    setSyncOnline(true);
+  } catch(e) {
+    // fall back to localStorage
+    try { localStorage.setItem('hoopboard_state_v2', JSON.stringify(state)); } catch(_){}
+    setSyncOnline(false);
+  }
+}
+
+async function pullState() {
+  try {
+    const result = await window.storage.get(STORAGE_KEY, true);
+    if (result && result.value) {
+      const remote = JSON.parse(result.value);
+      if (JSON.stringify(remote) !== lastSyncedHash) {
+        lastSyncedHash = JSON.stringify(remote);
+        const prev = state;
+        state = remote;
+        // Restart/stop timers based on remote state
+        ['a','b'].forEach(c => {
+          if (state.courts[c].timerRunning && !timers[c]) startTimerLocal(c);
+          if (!state.courts[c].timerRunning && timers[c]) { clearInterval(timers[c]); timers[c]=null; }
+        });
+        renderAll();
+      }
+      setSyncOnline(true);
+    }
+  } catch(e) {
+    setSyncOnline(false);
+    // try localStorage fallback
+    try {
+      const s = localStorage.getItem('hoopboard_state_v2');
+      if (s) { state = JSON.parse(s); renderAll(); }
+    } catch(_){}
+  }
+}
+
+function setSyncOnline(online) {
+  syncOnline = online;
+  const badge = el('sync-badge');
+  const methodBadge = el('sync-method-badge');
+  if (online) {
+    badge.textContent = '● LIVE SYNC'; badge.className = 'sync-badge';
+    if (methodBadge) methodBadge.textContent = 'Cloud Sync Active';
+  } else {
+    badge.textContent = '○ LOCAL ONLY'; badge.className = 'sync-badge offline';
+    if (methodBadge) methodBadge.textContent = 'Local Only (no cloud)';
+  }
+}
+
+// ════════════════════════════════════════════
+//  BROADCAST CHANNEL (same-device tabs)
+// ════════════════════════════════════════════
+let bc;
+function initBC() {
+  try {
+    bc = new BroadcastChannel('hoopboard-v2');
+    bc.onmessage = e => {
+      if (e.data && e.data.type==='STATE_UPDATE') {
+        state = JSON.parse(e.data.state);
+        ['a','b'].forEach(c => {
+          if (state.courts[c].timerRunning && !timers[c]) startTimerLocal(c);
+          if (!state.courts[c].timerRunning && timers[c]) { clearInterval(timers[c]); timers[c]=null; }
+        });
+        renderAll();
+      }
+    };
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════
+//  SAVE (both local BC + cloud push)
+// ════════════════════════════════════════════
+function saveState() {
+  try { bc && bc.postMessage({type:'STATE_UPDATE', state:JSON.stringify(state)}); } catch(e){}
+  pushState(); // async cloud push
+}
+
+// ════════════════════════════════════════════
+//  LOGIN / LOGOUT
+// ════════════════════════════════════════════
+function loginRef(court) {
+  const pw = el(`login-pw-${court}`).value;
+  const correct = state.passwords && state.passwords[court] ? state.passwords[court] : (court==='a' ? 'refa' : 'refb');
+  if (pw === correct) {
+    loggedIn[court] = true;
+    el(`login-gate-${court}`).style.display = 'none';
+    el(`ref-panel-${court}`).style.display = 'block';
+    el(`login-pw-${court}`).value = '';
+    el(`login-error-${court}`).textContent = '';
+    renderRefPanel(court);
+    toast(`✅ Ref ${court.toUpperCase()} logged in`);
+  } else {
+    el(`login-error-${court}`).textContent = 'Incorrect password. Try again.';
+    el(`login-pw-${court}`).value = '';
+    el(`login-pw-${court}`).focus();
+  }
+}
+
+function logoutRef(court) {
+  loggedIn[court] = false;
+  el(`login-gate-${court}`).style.display = 'flex';
+  el(`ref-panel-${court}`).style.display = 'none';
+  toast(`Ref ${court.toUpperCase()} logged out`);
+}
+
+function setPassword(court) {
+  const pw = el(`pw-set-${court}`).value.trim();
+  if (!pw) { toast('Password cannot be empty'); return; }
+  if (!state.passwords) state.passwords = {};
+  state.passwords[court] = pw;
+  saveState();
+  toast(`✅ Ref ${court.toUpperCase()} password updated`);
+  el(`pw-set-${court}`).value = '';
+}
+
+// ════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════
+function el(id) { return document.getElementById(id); }
+function getTeam(id) { return state.teams.find(t=>t.id===id) || {name:'TBD',color1:'#888',color2:'#fff'}; }
+function formatClock(secs) { const m=Math.floor(secs/60),s=secs%60; return `${m}:${s<10?'0':''}${s}`; }
+
+// ════════════════════════════════════════════
+//  GAME ACTIONS
+// ════════════════════════════════════════════
+function addScore(court,team,pts) {
+  const ct = state.courts[court];
+  if (team===1) ct.score1+=pts; else ct.score2+=pts;
+  const total=ct.score1+ct.score2;
+  if (total>0) ct.momentum=Math.round((ct.score1/total)*100);
+  ct.scoreHistory.push({team,pts,time:ct.clockSecs});
+  saveState(); renderAll();
+  const scoreEl=el(`disp-${court}-score${team}`);
+  scoreEl.classList.remove('pop','three'); void scoreEl.offsetWidth;
+  scoreEl.classList.add(pts===3?'three':'pop');
+  toast(`+${pts} for ${team===1?getTeam(ct.team1Id).name:getTeam(ct.team2Id).name}`);
+}
+
+function undoScore(court,team) {
+  const ct=state.courts[court];
+  if (team===1&&ct.score1>0) ct.score1--;
+  else if (team===2&&ct.score2>0) ct.score2--;
+  const total=ct.score1+ct.score2;
+  ct.momentum=total>0?Math.round((ct.score1/total)*100):50;
+  saveState(); renderAll(); toast('Score corrected');
+}
+
+function addFoul(court,team) {
+  const ct=state.courts[court];
+  if (team===1) ct.fouls1=Math.min(ct.fouls1+1,5);
+  else ct.fouls2=Math.min(ct.fouls2+1,5);
+  saveState(); renderAll(); toast(`Foul on Team ${team}`);
+}
+
+function togglePossession(court) {
+  state.courts[court].possession=(state.courts[court].possession%2)+1;
+  saveState(); renderAll();
+}
+
+function toggleTimer(court) {
+  const ct=state.courts[court];
+  if (ct.timerRunning) {
+    ct.timerRunning=false; clearInterval(timers[court]); timers[court]=null;
+  } else {
+    ct.timerRunning=true; startTimerLocal(court);
+  }
+  saveState(); renderAll();
+}
+
+function startTimerLocal(court) {
+  if (timers[court]) clearInterval(timers[court]);
+  timers[court]=setInterval(()=>{
+    if (!state.courts[court].timerRunning) { clearInterval(timers[court]); timers[court]=null; return; }
+    if (state.courts[court].clockSecs>0) {
+      state.courts[court].clockSecs--;
+      saveState(); renderDisplay(); renderRefPanel(court);
+    } else {
+      state.courts[court].timerRunning=false;
+      clearInterval(timers[court]); timers[court]=null;
+      saveState(); renderAll();
+      toast(`End of Q${state.courts[court].quarter} — Court ${court.toUpperCase()}`);
+    }
+  },1000);
+}
+
+function nextQuarter(court) {
+  const ct=state.courts[court];
+  ct.timerRunning=false; clearInterval(timers[court]); timers[court]=null;
+  if (ct.quarter<4) ct.quarter++;
+  ct.clockSecs=ct.quarterDur*60; ct.fouls1=0; ct.fouls2=0;
+  saveState(); renderAll(); toast(`Quarter ${ct.quarter} — Court ${court.toUpperCase()}`);
+}
+
+function overrideScore(court,team) {
+  const val=parseInt(el(`override-${court}-s${team}`).value)||0;
+  const ct=state.courts[court];
+  if (team===1) ct.score1=val; else ct.score2=val;
+  const total=ct.score1+ct.score2;
+  ct.momentum=total>0?Math.round((ct.score1/total)*100):50;
+  saveState(); renderAll(); toast('Score overridden');
+}
+
+function overrideClock(court) {
+  const val=el(`override-${court}-clock`).value;
+  const parts=val.split(':');
+  if (parts.length===2) {
+    state.courts[court].clockSecs=parseInt(parts[0])*60+parseInt(parts[1]);
+    saveState(); renderAll(); toast('Clock updated');
+  }
+}
+
+function applyQuarterDur(court) {
+  const dur=parseInt(el(`admin-${court}-qdur`).value);
+  state.courts[court].quarterDur=dur;
+  state.courts[court].clockSecs=dur*60;
+  saveState(); renderAll();
+}
+
+function applyTeamConfig() {
+  state.courts.a.team1Id=el('admin-a-team1').value;
+  state.courts.a.team2Id=el('admin-a-team2').value;
+  state.courts.b.team1Id=el('admin-b-team1').value;
+  state.courts.b.team2Id=el('admin-b-team2').value;
+  saveState(); renderAll();
+}
+
+function startGame(court) {
+  applyTeamConfig();
+  const ct=state.courts[court];
+  ct.score1=0;ct.score2=0;ct.fouls1=0;ct.fouls2=0;
+  ct.quarter=1;ct.clockSecs=ct.quarterDur*60;
+  ct.timerRunning=false;ct.possession=0;ct.momentum=50;ct.scoreHistory=[];
+  clearInterval(timers[court]); timers[court]=null;
+  saveState(); renderAll(); toast(`Court ${court.toUpperCase()} game started!`);
+}
+
+function resetGame(court) {
+  const ct=state.courts[court];
+  ct.score1=0;ct.score2=0;ct.fouls1=0;ct.fouls2=0;
+  ct.quarter=1;ct.clockSecs=ct.quarterDur*60;
+  ct.timerRunning=false;ct.possession=0;ct.momentum=50;ct.scoreHistory=[];
+  clearInterval(timers[court]); timers[court]=null;
+  saveState(); renderAll(); toast(`Court ${court.toUpperCase()} reset`);
+}
+
+function swapTeams(court) {
+  const ct=state.courts[court];
+  [ct.team1Id,ct.team2Id]=[ct.team2Id,ct.team1Id];
+  [ct.score1,ct.score2]=[ct.score2,ct.score1];
+  [ct.fouls1,ct.fouls2]=[ct.fouls2,ct.fouls1];
+  ct.momentum=100-ct.momentum;
+  saveState(); renderAll(); toast('Teams swapped');
+}
+
+function addTeam() {
+  const name=el('new-team-name').value.trim();
+  if (!name) return;
+  const id='t'+Date.now();
+  state.teams.push({id,name,color1:el('new-team-color1').value,color2:el('new-team-color2').value});
+  el('new-team-name').value='';
+  saveState(); renderAll(); toast(`Team "${name}" added`);
+}
+
+function deleteTeam(id) {
+  state.teams=state.teams.filter(t=>t.id!==id);
+  saveState(); renderAll(); toast('Team removed');
+}
+
+function sendAnnouncement() {
+  state.banner=el('announce-msg').value||state.banner;
+  state.sponsor=el('sponsor-msg').value||state.sponsor;
+  saveState(); renderAll(); toast('Announcement sent');
+}
+
+function clearAnnouncement() {
+  state.banner='HoopBoard Pro — Live Basketball Scoreboard';
+  saveState(); renderAll();
+}
+
+function triggerAnim(court,type) {
+  ['1','2'].forEach(n=>{
+    const s=el(`disp-${court}-score${n}`);
+    s.classList.remove('pop','three'); void s.offsetWidth; s.classList.add(type);
+  });
+}
+
+function triggerClutch(court) {
+  const ov=el(`clutch-${court}`);
+  ov.classList.add('active');
+  setTimeout(()=>ov.classList.remove('active'),5000);
+}
+
+function fullReset() {
+  ['a','b'].forEach(c=>{clearInterval(timers[c]);timers[c]=null;});
+  state=JSON.parse(JSON.stringify(DEFAULT_STATE));
+  saveState(); renderAll(); toast('Full system reset');
+}
+
+function exportState() {
+  const json=JSON.stringify(state,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='hoopboard_state.json';a.click();
+}
+
+// ════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════
+function renderAll() {
+  renderDisplay();
+  renderRefPanel('a');
+  renderRefPanel('b');
+  renderAdminDropdowns();
+  renderTeamList();
+}
+
+function renderDisplay() {
+  ['a','b'].forEach(c=>{
+    const ct=state.courts[c];
+    const t1=getTeam(ct.team1Id),t2=getTeam(ct.team2Id);
+    el(`disp-${c}-name1`).textContent=t1.name;
+    el(`disp-${c}-name2`).textContent=t2.name;
+    el(`disp-${c}-score1`).textContent=ct.score1;
+    el(`disp-${c}-score2`).textContent=ct.score2;
+    el(`disp-${c}-color1`).style.background=t1.color1;
+    el(`disp-${c}-color2`).style.background=t2.color1;
+    el(`disp-${c}-quarter`).textContent=`Q${ct.quarter}`;
+    el(`disp-${c}-clock`).textContent=formatClock(ct.clockSecs);
+    const isClutch=ct.clockSecs<=120&&ct.timerRunning;
+    el(`disp-${c}-clock`).className='clock'+(isClutch?' clutch':'');
+    el(`clutch-${c}`).className='clutch-overlay'+(isClutch?' active':'');
+    const pEl=el(`disp-${c}-poss`);
+    if (ct.possession===1){pEl.style.visibility='visible';pEl.style.background=t1.color1;}
+    else if (ct.possession===2){pEl.style.visibility='visible';pEl.style.background=t2.color1;}
+    else pEl.style.visibility='hidden';
+    renderFouls(`disp-${c}-fouls1`,ct.fouls1);
+    renderFouls(`disp-${c}-fouls2`,ct.fouls2);
+    el(`mom-${c}`).style.width=ct.momentum+'%';
+    const diff=Math.abs(ct.score1-ct.score2);
+    el(`court-${c}-panel`).className=`court-panel court-${c}${diff<=5&&(ct.score1+ct.score2)>0?' close-game':''}`;
+  });
+  el('banner-text').textContent=state.banner||'HoopBoard Pro';
+  el('sponsor-text').textContent=state.sponsor||'';
+}
+
+function renderFouls(elId,count) {
+  const container=el(elId); container.innerHTML='';
+  for (let i=0;i<5;i++){const d=document.createElement('div');d.className='foul-dot'+(i<count?' active':'');container.appendChild(d);}
+}
+
+function renderRefPanel(court) {
+  const ct=state.courts[court];
+  const t1=getTeam(ct.team1Id),t2=getTeam(ct.team2Id);
+  el(`ref-${court}-name1`).textContent=t1.name;
+  el(`ref-${court}-name2`).textContent=t2.name;
+  el(`ref-${court}-score1`).textContent=ct.score1;
+  el(`ref-${court}-score2`).textContent=ct.score2;
+  el(`ref-${court}-clock`).textContent=formatClock(ct.clockSecs);
+  el(`ref-${court}-quarter`).textContent=`Q${ct.quarter}`;
+  const btn=el(`ref-${court}-timer-btn`);
+  if (ct.timerRunning){btn.textContent='⏸ Pause';btn.className='ctl-btn pause';}
+  else{btn.textContent='▶ Start';btn.className='ctl-btn start';}
+  const dot=el(`ref-${court}-dot`);
+  const stxt=el(`ref-${court}-status-text`);
+  if (ct.timerRunning){dot.className='status-dot live';stxt.textContent='LIVE';}
+  else if (ct.score1+ct.score2>0){dot.className='status-dot paused';stxt.textContent='Paused';}
+  else{dot.className='status-dot idle';stxt.textContent='Ready';}
+}
+
+function renderAdminDropdowns() {
+  ['a','b'].forEach(c=>{
+    ['1','2'].forEach(t=>{
+      const sel=el(`admin-${c}-team${t}`);
+      const curVal=c==='a'?(t==='1'?state.courts.a.team1Id:state.courts.a.team2Id):(t==='1'?state.courts.b.team1Id:state.courts.b.team2Id);
+      sel.innerHTML=state.teams.map(tm=>`<option value="${tm.id}"${tm.id===curVal?' selected':''}>${tm.name}</option>`).join('');
+    });
+  });
+}
+
+function renderTeamList() {
+  el('team-list').innerHTML=state.teams.map(t=>`
+    <div class="team-item">
+      <div class="team-color-dot" style="background:${t.color1}"></div>
+      <div class="team-item-name">${t.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${t.color1}</div>
+      <button class="close-btn" onclick="deleteTeam('${t.id}')">✕</button>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════
+//  NAV
+// ════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  el(`page-${name}`).classList.add('active');
+  const map={'display':0,'ref-a':1,'ref-b':2,'admin':3};
+  const btns=[...document.querySelectorAll('.nav-btn')];
+  if (btns[map[name]]) btns[map[name]].classList.add('active');
+}
+
+function adminTab(name,event) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el(`admin-tab-${name}`).classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+let toastTimer;
+function toast(msg) {
+  let t=document.querySelector('.toast');
+  if (!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.style.opacity='0';},2200);
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+async function init() {
+  initBC();
+  // Try to load from cloud storage first
+  try {
+    const result = await window.storage.get(STORAGE_KEY, true);
+    if (result && result.value) {
+      state = JSON.parse(result.value);
+      lastSyncedHash = result.value;
+      setSyncOnline(true);
+    } else {
+      setSyncOnline(false);
+    }
+  } catch(e) {
+    // cloud not available, use localStorage fallback
+    try {
+      const s = localStorage.getItem('hoopboard_state_v2');
+      if (s) state = JSON.parse(s);
+    } catch(_) {}
+    setSyncOnline(false);
+  }
+  renderAll();
+  // Poll cloud every 1.5s for real-time cross-device sync
+  setInterval(pullState, 1500);
+}
+
+init();
+</script>
+</body>
+</html>
